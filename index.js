@@ -1,6 +1,10 @@
-const { Builder, By, Alert } = require('selenium-webdriver');
+const { Builder, By } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
+require('dotenv').config();
+const emails = process.env.EMAIL;
+const password = process.env.PASSWORD;
 const option = new chrome.Options();
+
 option.addArguments('--disable-default-apps');
 option.addArguments('--disable-extensions');
 option.addArguments('--disable-infobars');
@@ -10,33 +14,36 @@ option.setUserPreferences({
 
 const driver = new Builder().forBrowser('chrome').setChromeOptions(option).build();
 
-async function openZoomMeetingsPage() {
-  try {
-    await driver.get('https://zoom.us/signin');
-    await signInToZoom(driver);
-    await joinMeetingsPage(driver);
-    
-    //https://us04web.zoom.us/j/72739743892?pwd=uoK80bQeiEHzch570c5m7yJawsMq1P.1#success
-
-  } catch(e) {
-    console.log('An error occurred:', e.message);
-  }
+ async function browserFunction(link) {
+    try {
+      await driver.get('https://zoom.us/signin');
+      await signInToZoom(driver);
+      await joinMeetingsPage(driver,link);
+    } catch(e) {
+      console.log('An error occurred:', e.message);
+    }
 }
 
-async function joinMeetingsPage(driver) {
-  const url = 'https://us04web.zoom.us/j/72739743892?pwd=uoK80bQeiEHzch570c5m7yJawsMq1P.1';
+async function joinMeetingsPage(driver,link) {
+  const url = link;
+  const urlPart = url.split('/');
+  const newUrl = 'https://us04web.zoom.us/j/' + urlPart[4];
+
+  const regex = /\/j\/(\d+)/;
+  const match = newUrl.match(regex);
+  const meetingId = match ? match[1] : null;
+
   const part = url.split('?');
   const query = part[1];
   const queryPart = query.split('=');
   const passcode = queryPart[1];
-  // const urlPart = url.split('/');
-  // const passcode = url.split('?');
-  // const newUrl = 'https://us04web.zoom.us/j/' + urlPart;
-  await driver.get('https://us04web.zoom.us/wc/72739743892/join');
-  console.log(passcode);
+
+  const joinUrl = 'https://us04web.zoom.us/wc/'+meetingId+'/join'
+  await driver.get(joinUrl);
+  
+
   await driver.sleep(5000);
   const meetingPass = await driver.findElement(By.id('input-for-pwd'));
- // const meetingPass = await driver.findElement(By.css('#root > div > div.preview-new-flow > div > div.preview-meeting-info > div:nth-child(2) > label'));
   await meetingPass.sendKeys(passcode);
   
   const yourName = await driver.findElement(By.id('input-for-name'));
@@ -48,14 +55,14 @@ async function joinMeetingsPage(driver) {
 
 async function signInToZoom(driver) {
   try {
-    const emailInput = await driver.findElement(By.id('email'));
-    await emailInput.sendKeys('codecrazy21@gmail.com');
+    const email = await driver.findElement(By.id('email'));
+    await email.sendKeys(emails);
 
-    const passwordInput = await driver.findElement(By.id('password'));
-    await passwordInput.sendKeys('nMjKEVrSixkV6R7');
+    const passwords = await driver.findElement(By.id('password'));
+    await passwords.sendKeys(password);
 
-    const submitButton = await driver.findElement(By.id('js_btn_login'));
-    await submitButton.click();
+    const submit = await driver.findElement(By.id('js_btn_login'));
+    await submit.click();
 
     await driver.sleep(5000);
 
@@ -63,5 +70,4 @@ async function signInToZoom(driver) {
     console.log('An error occurred:', err.message);
   }
 }
-
-openZoomMeetingsPage();
+module.exports = {browserFunction};
