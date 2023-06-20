@@ -12,6 +12,8 @@ Start the server and install all dependencies.
 
 ```
 npm install
+
+npm run start
 ```
 # What Remaining?
 
